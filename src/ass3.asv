@@ -26,7 +26,8 @@ function vo()
     clear all;
 
     % watch the included video, 
-    load matches.mat;
+    matches_struct = load("import.mat");
+    matches = matches_struct.matches;
     imax = size(matches,2);
 
     % stereo camera parameters
@@ -164,13 +165,27 @@ end
 function [C, r] = compute_motion( p1, p2 )
 
     % ------insert your motion-from-two-pointclouds algorithm here------
-
+    % Checking to see if point clouds are empty:
+    if (size(p1, 2) == 0) || (size(p2, 2) == 0)
+        C = eye(3);
+        r = zeros(3, 1);
+        return
+    end
     
+    % Centroids:
+    centroid_1 = mean(p1, 2);
+    centroid_2 = mean(p2, 2);
+    p1_size = size(p1, 2);
+    singleton_exp_2 = bsxfun(@minus, p2, centroid_2);
+    singleton_exp_1 = transpose(bsxfun(@minus, p1, centroid_1));
+    W = singleton_exp_2* singleton_exp_1 / p1_size;
     
-    C = eye(3);     % temporary to make script run
-    r = zeros(3,1); % temporary to make script run
-   
+    % Computing SVD:
+    [U, S, V] = svd(W);
     
+    C = U * [1 0 0; 0 1 0; 0 0 det(V)*det(U)] * transpose(V);
+    
+    r = centroid_1 - transpose(C)*centroid_2;
     
     % ------end of your motion-from-two-pointclouds algorithm-------
     
